@@ -1,0 +1,2 @@
+{"location":"app/api/companies/route.ts:POST","message":"POST cookies","data":{"cookieCount":2,"cookieNames":["sb-lngxgksdivnzurjjoufn-auth-token","__next_hmr_refresh_hash__"]},"timestamp":1771147708695,"hypothesisId":"B"}
+{"location":"app/api/companies/route.ts:POST","message":"auth state","data":{"hasSession":true,"hasUser":true},"timestamp":1771147709049,"hypothesisId":"A,D,E"}
