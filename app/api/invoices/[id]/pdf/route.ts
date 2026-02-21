@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import puppeteer from 'puppeteer'
+import puppeteer from 'puppeteer-core'
+import chromium from '@sparticuz/chromium'
 
 function escapeHtml(text: string): string {
   return String(text)
@@ -193,8 +194,10 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     const html = buildInvoiceHtml(invoice)
 
     const browser = await puppeteer.launch({
+      args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox'],
+      defaultViewport: { width: 1200, height: 800, deviceScaleFactor: 1 },
+      executablePath: await chromium.executablePath(),
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
     })
 
     try {
