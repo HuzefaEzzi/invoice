@@ -2,7 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import puppeteer from 'puppeteer-core'
-import chromium from '@sparticuz/chromium'
+import chromium from '@sparticuz/chromium-min'
+
+// Remote Chromium pack (used on Vercel where node_modules/bin is not available).
+// First request may be slower while the pack is downloaded and extracted to /tmp.
+const CHROMIUM_VERSION = '143.0.4'
+const CHROMIUM_PACK_URL =
+  process.env.CHROMIUM_PACK_URL ||
+  `https://github.com/Sparticuz/chromium/releases/download/v${CHROMIUM_VERSION}/chromium-v${CHROMIUM_VERSION}-pack.${process.arch === 'arm64' ? 'arm64' : 'x64'}.tar`
 
 function escapeHtml(text: string): string {
   return String(text)
@@ -196,7 +203,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     const browser = await puppeteer.launch({
       args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox'],
       defaultViewport: { width: 1200, height: 800, deviceScaleFactor: 1 },
-      executablePath: await chromium.executablePath(),
+      executablePath: await chromium.executablePath(CHROMIUM_PACK_URL),
       headless: true,
     })
 
