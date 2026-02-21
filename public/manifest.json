@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "name": "Invoice Manager - Professional Invoicing PWA",
   "short_name": "Invoice Manager",
   "description": "Manage invoices, customers, products, and companies with ease",

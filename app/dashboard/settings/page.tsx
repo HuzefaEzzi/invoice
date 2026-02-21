@@ -3,6 +3,7 @@
 import { useAuth } from '@/lib/auth-context'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { PwaInstallButton } from '@/components/pwa-install-button'
 import { LogOut } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
@@ -58,7 +59,7 @@ export default function SettingsPage() {
               Invoice Manager is a Progressive Web App that can be installed on your mobile
               device or computer for offline access and native app-like experience.
             </p>
-            <Button variant="outline">Install App</Button>
+            <PwaInstallButton />
           </CardContent>
         </Card>
 
