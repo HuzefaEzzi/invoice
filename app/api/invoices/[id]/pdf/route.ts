@@ -1,11 +1,93 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
+
+const MARGIN = 50
+const PAGE_WIDTH = 612
+const PAGE_HEIGHT = 792
+const LINE_HEIGHT = 14
+const ROW_HEIGHT = 20
+const TABLE_COLS = { description: 260, quantity: 70, unitPrice: 95, amount: 95 }
+const TABLE_LEFT = 50
+const TABLE_RIGHT = PAGE_WIDTH - MARGIN
+
+function drawText(
+  page: { drawText: (text: string, opts: { x: number; y: number; size: number; font: any; color?: any }) => void },
+  text: string,
+  x: number,
+  y: number,
+  font: any,
+  size: number = 11,
+  color = rgb(0, 0, 0)
+) {
+  const safe = (text ?? '').toString().slice(0, 200)
+  page.drawText(safe, { x, y, size, font, color })
+}
+
+function drawTextRight(
+  page: { drawText: (text: string, opts: { x: number; y: number; size: number; font: any; color?: any }) => void },
+  text: string,
+  rightX: number,
+  y: number,
+  font: any,
+  size: number = 11,
+  color = rgb(0, 0, 0)
+) {
+  const safe = (text ?? '').toString().slice(0, 200)
+  const width = font.widthOfTextAtSize(safe, size)
+  page.drawText(safe, { x: rightX - width, y, size, font, color })
+}
+
+function drawTextCenter(
+  page: { drawText: (text: string, opts: { x: number; y: number; size: number; font: any; color?: any }) => void },
+  text: string,
+  leftX: number,
+  rightX: number,
+  y: number,
+  font: any,
+  size: number = 11,
+  color = rgb(0, 0, 0)
+) {
+  const safe = (text ?? '').toString().slice(0, 200)
+  const width = font.widthOfTextAtSize(safe, size)
+  const x = leftX + (rightX - leftX - width) / 2
+  page.drawText(safe, { x, y, size, font, color })
+}
+
+function drawLine(
+  page: { drawLine: (opts: { start: { x: number; y: number }; end: { x: number; y: number }; thickness: number }) => void },
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  thickness = 0.5
+) {
+  page.drawLine({ start: { x: x1, y: y1 }, end: { x: x2, y: y2 }, thickness })
+}
 
 export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params
 
   try {
-    // Fetch invoice with related data
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+        },
+      }
+    )
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { data: invoice, error: invoiceError } = await supabase
       .from('invoices')
       .select('*, companies(*), customers(*), invoice_items(*)')
@@ -16,127 +98,120 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
     }
 
-    // Generate simple HTML for PDF
-    const html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <style>
-          * { margin: 0; padding: 0; }
-          body { font-family: Arial, sans-serif; padding: 40px; }
-          .header { margin-bottom: 40px; }
-          .company-name { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
-          .company-details { font-size: 12px; color: #666; }
-          .invoice-title { font-size: 32px; font-weight: bold; margin-bottom: 20px; margin-top: 40px; }
-          .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px; }
-          .info-section { }
-          .info-label { font-size: 12px; color: #999; margin-bottom: 5px; }
-          .info-value { font-size: 14px; font-weight: bold; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
-          th { border-bottom: 2px solid #000; padding: 10px; text-align: left; font-weight: bold; }
-          td { border-bottom: 1px solid #ddd; padding: 10px; }
-          .line-items-table td { text-align: right; }
-          .line-items-table td:first-child { text-align: left; }
-          .totals { float: right; width: 300px; }
-          .total-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ddd; }
-          .total-final { display: flex; justify-content: space-between; padding: 12px 0; border-top: 2px solid #000; font-weight: bold; font-size: 16px; }
-          .notes { margin-top: 40px; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="company-name">${invoice.companies?.name || 'Company'}</div>
-          <div class="company-details">
-            ${invoice.companies?.address ? invoice.companies.address : ''}<br/>
-            ${invoice.companies?.city ? invoice.companies.city + ', ' + invoice.companies.state : ''}<br/>
-            ${invoice.companies?.phone ? invoice.companies.phone : ''}
-          </div>
-        </div>
+    const doc = await PDFDocument.create()
+    const page = doc.addPage([PAGE_WIDTH, PAGE_HEIGHT])
+    const font = await doc.embedFont(StandardFonts.Helvetica)
+    const fontBold = await doc.embedFont(StandardFonts.HelveticaBold)
+    const muted = rgb(0.45, 0.45, 0.45)
 
-        <div class="invoice-title">INVOICE</div>
+    let y = PAGE_HEIGHT - MARGIN
 
-        <div class="info-grid">
-          <div class="info-section">
-            <div class="info-label">BILL TO</div>
-            <div class="info-value">${invoice.customers?.name || 'Customer'}</div>
-            <div style="margin-top: 10px; font-size: 12px;">
-              ${invoice.customers?.address ? invoice.customers.address : ''}<br/>
-              ${invoice.customers?.city ? invoice.customers.city + ', ' + invoice.customers.state : ''}<br/>
-              ${invoice.customers?.email ? invoice.customers.email : ''}
-            </div>
-          </div>
-          <div class="info-section" style="text-align: right;">
-            <div class="info-label">Invoice #</div>
-            <div class="info-value">${invoice.invoice_number}</div>
-            <div style="margin-top: 20px;">
-              <div class="info-label">Issue Date</div>
-              <div>${new Date(invoice.issue_date).toLocaleDateString()}</div>
-              <div class="info-label" style="margin-top: 10px;">Due Date</div>
-              <div>${new Date(invoice.due_date).toLocaleDateString()}</div>
-            </div>
-          </div>
-        </div>
+    // ─── Header: Company (left) | Invoice Number + Status (right) ───
+    drawText(page, invoice.companies?.name || 'Company', TABLE_LEFT, y, fontBold, 20)
+    y -= LINE_HEIGHT
+    const companyLines = [
+      invoice.companies?.address,
+      [invoice.companies?.city, invoice.companies?.state, invoice.companies?.postal_code].filter(Boolean).join(', '),
+      invoice.companies?.phone,
+    ].filter(Boolean)
+    for (const line of companyLines) {
+      drawText(page, line, TABLE_LEFT, y, font, 10, muted)
+      y -= LINE_HEIGHT - 2
+    }
 
-        <table class="line-items-table">
-          <thead>
-            <tr>
-              <th>Description</th>
-              <th>Quantity</th>
-              <th>Unit Price</th>
-              <th>Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${invoice.invoice_items
-              ?.map(
-                (item) => `
-              <tr>
-                <td>${item.description}</td>
-                <td>${item.quantity}</td>
-                <td>$${Number(item.unit_price).toFixed(2)}</td>
-                <td>$${Number(item.amount).toFixed(2)}</td>
-              </tr>
-            `
-              )
-              .join('')}
-          </tbody>
-        </table>
+    const headerRightY = PAGE_HEIGHT - MARGIN
+    drawTextRight(page, 'Invoice Number', TABLE_RIGHT, headerRightY, font, 10, muted)
+    drawTextRight(page, invoice.invoice_number, TABLE_RIGHT, headerRightY - LINE_HEIGHT, fontBold, 18)
+    drawTextRight(page, 'Status', TABLE_RIGHT, headerRightY - LINE_HEIGHT - 20, font, 10, muted)
+    drawTextRight(page, (invoice.status || 'Draft').charAt(0).toUpperCase() + (invoice.status || '').slice(1), TABLE_RIGHT, headerRightY - LINE_HEIGHT - 34, fontBold, 12)
 
-        <div class="totals">
-          <div class="total-row">
-            <span>Subtotal</span>
-            <span>$${Number(invoice.subtotal).toFixed(2)}</span>
-          </div>
-          <div class="total-row">
-            <span>Tax</span>
-            <span>$${Number(invoice.tax).toFixed(2)}</span>
-          </div>
-          <div class="total-final">
-            <span>TOTAL</span>
-            <span>$${Number(invoice.total).toFixed(2)}</span>
-          </div>
-        </div>
+    y -= 16
+    drawLine(page, TABLE_LEFT, y, TABLE_RIGHT, y, 0.5)
+    y -= 24
 
-        ${
-          invoice.notes
-            ? `
-          <div class="notes">
-            <strong>Notes:</strong>
-            <p>${invoice.notes}</p>
-          </div>
-        `
-            : ''
-        }
-      </body>
-      </html>
-    `
+    // ─── Bill To (left) | Issue Date, Due Date (right) ───
+    const billToY = y
+    drawText(page, 'Bill To', TABLE_LEFT, y, font, 10, muted)
+    drawTextRight(page, 'Issue Date', TABLE_RIGHT, y, font, 10, muted)
+    drawTextRight(page, new Date(invoice.issue_date).toLocaleDateString(), TABLE_RIGHT, y, fontBold, 11)
+    y -= LINE_HEIGHT - 2
+    drawText(page, invoice.customers?.name || 'Customer', TABLE_LEFT, y, fontBold, 11)
+   // drawTextRight(page, 'Due Date', TABLE_RIGHT, y, font, 10, muted)
+    //drawTextRight(page, new Date(invoice.due_date).toLocaleDateString(), TABLE_RIGHT, y, fontBold, 11)
+    y -= LINE_HEIGHT
+    const customerLines = [
+      invoice.customers?.address,
+      [invoice.customers?.city, invoice.customers?.state, invoice.customers?.postal_code].filter(Boolean).join(', '),
+      invoice.customers?.phone,
+      invoice.customers?.email,
+    ].filter(Boolean)
+    for (const line of customerLines) {
+      drawText(page, line, TABLE_LEFT, y, font, 10, muted)
+      y -= LINE_HEIGHT - 2
+    }
 
-    // For now, return HTML. In production, you'd use a library like puppeteer or similar
-    return new NextResponse(html, {
+    y -= 12
+    drawLine(page, TABLE_LEFT, y, TABLE_RIGHT, y, 0.5)
+    y -= 20
+
+    // ─── Table: Description (left) | Quantity (center) | Unit Price (right) | Amount (right) ───
+    const colDescEnd = TABLE_LEFT + TABLE_COLS.description
+    const colQtyEnd = colDescEnd + TABLE_COLS.quantity
+    const colUnitEnd = colQtyEnd + TABLE_COLS.unitPrice
+    const colAmountEnd = TABLE_RIGHT
+
+    drawText(page, 'Description', TABLE_LEFT, y, fontBold, 10)
+    drawTextCenter(page, 'Quantity', colDescEnd, colQtyEnd, y, fontBold, 10)
+    drawTextRight(page, 'Unit Price', colUnitEnd, y, fontBold, 10)
+    drawTextRight(page, 'Amount', colAmountEnd, y, fontBold, 10)
+    y -= ROW_HEIGHT
+    drawLine(page, TABLE_LEFT, y, TABLE_RIGHT, y, 0.8)
+    y -= 6
+
+    const items = invoice.invoice_items ?? []
+    for (const item of items) {
+      drawText(page, (item.description ?? '').slice(0, 45), TABLE_LEFT, y, font, 10)
+      drawTextCenter(page, String(item.quantity ?? 0), colDescEnd, colQtyEnd, y, font, 10)
+      drawTextRight(page, `$${Number(item.unit_price).toFixed(2)}`, colUnitEnd, y, font, 10)
+      drawTextRight(page, `$${Number(item.amount).toFixed(2)}`, colAmountEnd, y, font, 10)
+      y -= ROW_HEIGHT
+    }
+
+    drawLine(page, TABLE_LEFT, y, TABLE_RIGHT, y, 0.5)
+    y -= 20
+
+    // ─── Totals (right-aligned column, matching UI) ───
+    const totalLabelLeft = colUnitEnd - 20
+    const totalValueRight = colAmountEnd
+
+    drawText(page, 'Subtotal:', totalLabelLeft, y, font, 10)
+    drawTextRight(page, `$${Number(invoice.subtotal).toFixed(2)}`, totalValueRight, y, font, 10)
+    y -= LINE_HEIGHT + 2
+    drawText(page, 'Tax:', totalLabelLeft, y, font, 10)
+    drawTextRight(page, `$${Number(invoice.tax).toFixed(2)}`, totalValueRight, y, font, 10)
+    y -= LINE_HEIGHT + 6
+    drawLine(page, totalLabelLeft, y, totalValueRight, y, 0.5)
+    y -= LINE_HEIGHT + 4
+    drawText(page, 'Total:', totalLabelLeft, y, fontBold, 12)
+    drawTextRight(page, `$${Number(invoice.total).toFixed(2)}`, totalValueRight, y, fontBold, 12)
+    y -= 24
+
+    if (invoice.notes) {
+      drawText(page, 'Notes', TABLE_LEFT, y, fontBold, 10)
+      y -= LINE_HEIGHT
+      const noteLines = String(invoice.notes).split(/\n/).slice(0, 8)
+      for (const line of noteLines) {
+        drawText(page, line.slice(0, 85), TABLE_LEFT, y, font, 10, muted)
+        y -= LINE_HEIGHT - 2
+      }
+    }
+
+    const pdfBytes = await doc.save()
+
+    return new NextResponse(pdfBytes, {
       headers: {
-        'Content-Type': 'text/html; charset=utf-8',
-        'Content-Disposition': `attachment; filename="invoice-${invoice.invoice_number}.html"`,
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="invoice-${invoice.invoice_number}.pdf"`,
       },
     })
   } catch (error) {

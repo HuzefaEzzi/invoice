@@ -1,12 +1,13 @@
 'use client'
 
 import React from "react"
-
+import dynamic from 'next/dynamic'
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { AuthProvider } from '@/lib/auth-context'
-import { Sidebar } from '@/components/dashboard/sidebar'
+
+const Sidebar = dynamic(() => import('@/components/dashboard/sidebar').then((m) => ({ default: m.Sidebar })), { ssr: false })
 
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()

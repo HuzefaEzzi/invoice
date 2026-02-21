@@ -149,6 +149,7 @@ export function InvoiceForm({ invoiceId }: InvoiceFormProps) {
       ...lineItems,
       {
         tempId: Date.now().toString(),
+        product_id: null,
         description: '',
         quantity: '1',
         unit_price: '0',
@@ -160,14 +161,22 @@ export function InvoiceForm({ invoiceId }: InvoiceFormProps) {
   const updateLineItem = (tempId: string, field: string, value: any) => {
     setLineItems(
       lineItems.map((item) => {
-        if (item.tempId === tempId) {
-          const updated = { ...item, [field]: value }
-          if (field === 'quantity' || field === 'unit_price') {
-            updated.amount = (Number(updated.quantity) * Number(updated.unit_price)).toString()
+        if (item.tempId !== tempId) return item
+        const updated = { ...item, [field]: value }
+        if (field === 'product_id') {
+          const product = products.find((p) => p.id === value)
+          if (product) {
+            updated.description = product.name
+            updated.unit_price = product.price
+          } else {
+            updated.description = ''
+            updated.unit_price = '0'
           }
-          return updated
         }
-        return item
+        if (field === 'quantity' || field === 'unit_price' || field === 'product_id') {
+          updated.amount = (Number(updated.quantity) * Number(updated.unit_price)).toString()
+        }
+        return updated
       })
     )
   }
@@ -196,6 +205,7 @@ export function InvoiceForm({ invoiceId }: InvoiceFormProps) {
             ...invoice,
             items: lineItems.map((item) => ({
               product_id: item.product_id || null,
+              description: item.description || '',
               quantity: item.quantity,
               unit_price: item.unit_price,
             })),
@@ -308,34 +318,31 @@ export function InvoiceForm({ invoiceId }: InvoiceFormProps) {
               <div className="space-y-3">
                 {lineItems.map((item) => (
                   <div key={item.tempId} className="flex gap-2 items-end">
-                    <div className="flex-1">
-                      <label className="block text-xs mb-1">Description</label>
-                      <Input
-                        type="text"
-                        value={item.description || ''}
+                    <div className="flex-1 min-w-0">
+                      <label className="block text-xs mb-1">Product</label>
+                      <select
+                        value={item.product_id || ''}
                         onChange={(e) =>
-                          updateLineItem(item.tempId, 'description', e.target.value)
+                          updateLineItem(item.tempId, 'product_id', e.target.value || null)
                         }
-                      />
+                        className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                      >
+                        <option value="">Select product</option>
+                        {products.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} — ${Number(p.price).toFixed(2)}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                     <div className="w-20">
                       <label className="block text-xs mb-1">Qty</label>
                       <Input
                         type="number"
+                        min={1}
                         value={item.quantity || '1'}
                         onChange={(e) =>
                           updateLineItem(item.tempId, 'quantity', e.target.value)
-                        }
-                      />
-                    </div>
-                    <div className="w-24">
-                      <label className="block text-xs mb-1">Unit Price</label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={item.unit_price || '0'}
-                        onChange={(e) =>
-                          updateLineItem(item.tempId, 'unit_price', e.target.value)
                         }
                       />
                     </div>

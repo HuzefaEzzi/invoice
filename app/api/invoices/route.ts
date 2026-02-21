@@ -29,9 +29,9 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { company_id, customer_id, invoice_number, issue_date, due_date, status, items, tax_rate, notes } = body
 
-    const subtotal = items.reduce((sum: number, item: any) => sum + (item.quantity * item.unit_price), 0)
-    const tax_amount = subtotal * (tax_rate / 100)
-    const total_amount = subtotal + tax_amount
+    const subtotal = items.reduce((sum: number, item: any) => sum + (item.quantity * Number(item.unit_price)), 0)
+    const tax = subtotal * ((tax_rate ?? 10) / 100)
+    const total = subtotal + tax
 
     const adminSupabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -56,9 +56,8 @@ export async function POST(request: Request) {
         due_date,
         status,
         subtotal,
-        tax_rate,
-        tax_amount,
-        total_amount,
+        tax,
+        total,
         notes,
       })
       .select()
@@ -69,13 +68,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
 
-    // Insert invoice items
+    // Insert invoice items (description and unit_price from product selection)
     const invoiceItems = items.map((item: any) => ({
       invoice_id: data.id,
-      product_id: item.product_id,
+      product_id: item.product_id || null,
+      description: item.description || '',
       quantity: item.quantity,
       unit_price: item.unit_price,
-      line_total: item.quantity * item.unit_price,
+      amount: Number(item.quantity) * Number(item.unit_price),
     }))
 
     const { error: itemsError } = await adminSupabase
