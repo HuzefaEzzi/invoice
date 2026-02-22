@@ -56,6 +56,10 @@ function buildInvoiceHtml(invoice: any): string {
     )
     .join('')
 
+  const logoImg = company.logo_url
+    ? `<img src="${escapeHtml(company.logo_url)}" alt="Logo" style="width: 200px; height: 200px; object-fit: contain; display: block;" />`
+    : ''
+
   return `
 <!DOCTYPE html>
 <html>
@@ -87,7 +91,8 @@ function buildInvoiceHtml(invoice: any): string {
     <div class="section">
       <div class="grid-2">
         <div>
-          <h1 class="text-3xl">${escapeHtml(company.name || 'Company')}</h1>
+          ${logoImg}
+          <h1 class="text-3xl" style="${logoImg ? 'margin-top: 12px;' : ''}">${escapeHtml(company.name || 'Company')}</h1>
           <div class="muted space-y-1">
             ${companyAddress.map((line: string) => `<p>${escapeHtml(line)}</p>`).join('')}
           </div>

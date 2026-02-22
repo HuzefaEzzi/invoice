@@ -31,6 +31,9 @@ This is a complete Progressive Web App for invoice management built with Next.js
    - Copy the entire SQL file content
    - Paste it into Supabase SQL Editor
    - Click Run
+4. **(Optional) Company logos:** To allow uploading company logos (shown on invoices and PDFs):
+   - In Supabase Dashboard go to **Storage** → **New bucket**. Create a bucket named `company-logos`, set it to **Public**, set file size limit to **2MB**, and allowed MIME types to `image/jpeg`, `image/png`, `image/gif`, `image/webp`.
+   - In SQL Editor run the script `/scripts/setup-storage-logos.sql` to add RLS policies so users can only upload to their own folder.
 
 ### 2. Configure Environment Variables
 
@@ -72,6 +75,7 @@ All tables have Row-Level Security enabled to ensure users only see their own da
 #### Companies
 - Create, read, update, delete companies
 - Store company details (address, phone, tax ID, etc.)
+- Upload company logo (stored in Supabase Storage; shown on invoices and PDFs)
 
 #### Customers
 - Manage customer contacts
@@ -108,9 +112,10 @@ All tables have Row-Level Security enabled to ensure users only see their own da
 #### Shortcuts
 - Quick shortcuts from home screen to New Invoice and Customers
 
-### 6. PDF Export
+### 6. PDF Export & Company Logos
 
-Currently exports invoices as HTML which can be printed to PDF:
+- Invoices can be **downloaded as PDF** from the invoice view page (uses server-side PDF generation with company logo when set).
+- **Company logos** are stored in Supabase Storage (`company-logos` bucket), one logo per company. They appear when creating/editing invoices, on the invoice view, and in the generated PDF.
 1. Click the Download button on an invoice
 2. In the browser print dialog, select "Save as PDF"
 3. Or print directly to your printer
@@ -203,7 +208,6 @@ id, invoice_id, product_id, description, quantity, unit_price, amount
 
 ## Next Steps
 
-- Customize company logo uploads
 - Add email invoice sending
 - Implement payment gateway integration
 - Add recurring invoices

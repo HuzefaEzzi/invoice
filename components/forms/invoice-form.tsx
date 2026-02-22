@@ -238,11 +238,22 @@ export function InvoiceForm({ invoiceId }: InvoiceFormProps) {
     }
   }
 
+  const selectedCompany = companies.find((c) => c.id === invoice.company_id)
+
   return (
     <div className="max-w-4xl space-y-6">
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-start justify-between gap-4">
           <CardTitle>{invoiceId ? 'Edit Invoice' : 'New Invoice'}</CardTitle>
+          {selectedCompany?.logo_url && (
+            <div className="w-[200px] h-[200px] rounded border border-border overflow-hidden bg-muted flex-shrink-0">
+              <img
+                src={selectedCompany.logo_url}
+                alt="Company logo"
+                className="w-full h-full object-contain"
+              />
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">

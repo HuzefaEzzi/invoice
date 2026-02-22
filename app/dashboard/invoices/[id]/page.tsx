@@ -97,9 +97,19 @@ export default function ViewInvoicePage({ params: paramsPromise }: ViewInvoicePa
           {/* Header */}
           <div className="mb-8 pb-8 border-b border-border">
             <div className="grid grid-cols-2 gap-8">
-              <div>
-                <h1 className="text-3xl font-bold mb-2">{invoice.companies?.name}</h1>
-                <div className="text-sm text-muted-foreground space-y-1">
+              <div className="flex gap-4 items-start">
+                {invoice.companies?.logo_url && (
+                  <div className="w-[200px] h-[200px] rounded-lg border border-border overflow-hidden bg-muted flex-shrink-0 print:block">
+                    <img
+                      src={invoice.companies.logo_url}
+                      alt="Company logo"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                )}
+                <div>
+                  <h1 className="text-3xl font-bold mb-2">{invoice.companies?.name}</h1>
+                  <div className="text-sm text-muted-foreground space-y-1">
                   {invoice.companies?.address && <p>{invoice.companies.address}</p>}
                   {invoice.companies?.city && (
                     <p>
@@ -108,6 +118,7 @@ export default function ViewInvoicePage({ params: paramsPromise }: ViewInvoicePa
                     </p>
                   )}
                   {invoice.companies?.phone && <p>{invoice.companies.phone}</p>}
+                </div>
                 </div>
               </div>
               <div className="text-right">
