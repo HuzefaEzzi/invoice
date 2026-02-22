@@ -39,6 +39,9 @@ function buildInvoiceHtml(invoice: any): string {
 
   const issueDate = new Date(invoice.issue_date).toLocaleDateString()
   const dueDate = new Date(invoice.due_date).toLocaleDateString()
+  // Total from line items only (no tax) so print/PDF is correct for old and new invoices
+  const totalFromItems = items.reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0)
+  const rupee = '&#8377;' // ₹ as HTML entity so it renders in PDF
 
   const lineItemsHtml = items
     .map(
@@ -46,8 +49,8 @@ function buildInvoiceHtml(invoice: any): string {
       <tr>
         <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">${escapeHtml(item.description || '')}</td>
         <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb; text-align: center;">${escapeHtml(String(item.quantity ?? 0))}</td>
-        <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb; text-align: right;">₹${Number(item.unit_price).toFixed(2)}</td>
-        <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 500;">₹${Number(item.amount).toFixed(2)}</td>
+        <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb; text-align: right;">${rupee}${Number(item.unit_price).toFixed(2)}</td>
+        <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 500;">${rupee}${Number(item.amount).toFixed(2)}</td>
       </tr>
     `
     )
@@ -143,7 +146,7 @@ function buildInvoiceHtml(invoice: any): string {
       <div class="totals">
         <div class="row total">
           <span>Total:</span>
-          <span>₹${Number(invoice.total).toFixed(2)}</span>
+          <span>${rupee}${totalFromItems.toFixed(2)}</span>
         </div>
       </div>
     </div>

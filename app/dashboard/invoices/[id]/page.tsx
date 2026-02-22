@@ -68,6 +68,8 @@ export default function ViewInvoicePage({ params: paramsPromise }: ViewInvoicePa
   }
 
   const items = invoice.invoice_items || []
+  // Total from line items only (no tax)
+  const totalFromItems = items.reduce((sum, item) => sum + Number(item.amount || 0), 0)
 
   return (
     <div className="p-4 md:p-8">
@@ -113,7 +115,7 @@ export default function ViewInvoicePage({ params: paramsPromise }: ViewInvoicePa
                   <p className="text-sm text-muted-foreground">Invoice Number</p>
                   <p className="text-2xl font-bold">{invoice.invoice_number}</p>
                 </div>
-                <div>
+                <div className="print:hidden">
                   <p className="text-sm text-muted-foreground">Status</p>
                   <p className="text-lg font-semibold capitalize">{invoice.status}</p>
                 </div>
@@ -191,7 +193,7 @@ export default function ViewInvoicePage({ params: paramsPromise }: ViewInvoicePa
             <div className="space-y-3">
               <div className="flex justify-between pt-3 border-t border-border font-bold text-lg">
                 <span>Total:</span>
-                <span>₹{Number(invoice.total).toFixed(2)}</span>
+                <span>₹{totalFromItems.toFixed(2)}</span>
               </div>
             </div>
           </div>
