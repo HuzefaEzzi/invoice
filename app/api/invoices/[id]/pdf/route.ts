@@ -37,7 +37,6 @@ function buildInvoiceHtml(invoice: any): string {
     customer.email,
   ].filter(Boolean)
 
-  const status = (invoice.status || 'Draft').charAt(0).toUpperCase() + (invoice.status || '').slice(1)
   const issueDate = new Date(invoice.issue_date).toLocaleDateString()
   const dueDate = new Date(invoice.due_date).toLocaleDateString()
 
@@ -47,8 +46,8 @@ function buildInvoiceHtml(invoice: any): string {
       <tr>
         <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">${escapeHtml(item.description || '')}</td>
         <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb; text-align: center;">${escapeHtml(String(item.quantity ?? 0))}</td>
-        <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb; text-align: right;">$${Number(item.unit_price).toFixed(2)}</td>
-        <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 500;">$${Number(item.amount).toFixed(2)}</td>
+        <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb; text-align: right;">₹${Number(item.unit_price).toFixed(2)}</td>
+        <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 500;">₹${Number(item.amount).toFixed(2)}</td>
       </tr>
     `
     )
@@ -91,13 +90,9 @@ function buildInvoiceHtml(invoice: any): string {
           </div>
         </div>
         <div class="text-right">
-          <div style="margin-bottom: 16px;">
+          <div>
             <p class="muted">Invoice Number</p>
             <p class="bold" style="font-size: 22px;">${escapeHtml(invoice.invoice_number)}</p>
-          </div>
-          <div>
-            <p class="muted">Status</p>
-            <p class="bold" style="font-size: 18px;">${escapeHtml(status)}</p>
           </div>
         </div>
       </div>
@@ -146,17 +141,9 @@ function buildInvoiceHtml(invoice: any): string {
         ${invoice.notes ? `<div><p class="bold" style="font-size: 13px; margin-bottom: 8px;">Notes</p><p class="notes">${escapeHtml(invoice.notes)}</p></div>` : ''}
       </div>
       <div class="totals">
-        <div class="row">
-          <span>Subtotal:</span>
-          <span class="bold">$${Number(invoice.subtotal).toFixed(2)}</span>
-        </div>
-        <div class="row">
-          <span>Tax:</span>
-          <span class="bold">$${Number(invoice.tax).toFixed(2)}</span>
-        </div>
         <div class="row total">
           <span>Total:</span>
-          <span>$${Number(invoice.total).toFixed(2)}</span>
+          <span>₹${Number(invoice.total).toFixed(2)}</span>
         </div>
       </div>
     </div>

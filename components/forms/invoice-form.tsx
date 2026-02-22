@@ -52,9 +52,23 @@ export function InvoiceForm({ invoiceId }: InvoiceFormProps) {
       fetchCompanies()
       if (invoiceId && invoiceId !== 'new') {
         fetchInvoice()
+      } else {
+        fetchNextInvoiceNumber()
       }
     }
   }, [user, invoiceId])
+
+  const fetchNextInvoiceNumber = async () => {
+    try {
+      const res = await fetch('/api/invoices/next-number')
+      if (res.ok) {
+        const { nextNumber } = await res.json()
+        setInvoice((prev) => ({ ...prev, invoice_number: nextNumber }))
+      }
+    } catch (e) {
+      console.error('Error fetching next invoice number:', e)
+    }
+  }
 
   useEffect(() => {
     if (invoice.company_id) {
@@ -133,13 +147,12 @@ export function InvoiceForm({ invoiceId }: InvoiceFormProps) {
 
   const calculateTotals = () => {
     const subtotal = lineItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
-    const tax = subtotal * 0.1 // 10% tax
-    const total = subtotal + tax
+    const total = subtotal
 
     setInvoice((prev) => ({
       ...prev,
       subtotal: subtotal.toString(),
-      tax: tax.toString(),
+      tax: '0',
       total: total.toString(),
     }))
   }
@@ -209,7 +222,6 @@ export function InvoiceForm({ invoiceId }: InvoiceFormProps) {
               quantity: item.quantity,
               unit_price: item.unit_price,
             })),
-            tax_rate: 10,
           }),
         })
 
@@ -240,8 +252,8 @@ export function InvoiceForm({ invoiceId }: InvoiceFormProps) {
                 <Input
                   type="text"
                   value={invoice.invoice_number || ''}
-                  onChange={(e) => setInvoice({ ...invoice, invoice_number: e.target.value })}
-                  required
+                  readOnly
+                  className="bg-muted"
                 />
               </div>
               <div>
@@ -330,7 +342,7 @@ export function InvoiceForm({ invoiceId }: InvoiceFormProps) {
                         <option value="">Select product</option>
                         {products.map((p) => (
                           <option key={p.id} value={p.id}>
-                            {p.name} — ${Number(p.price).toFixed(2)}
+                            {p.name} — ₹{Number(p.price).toFixed(2)}
                           </option>
                         ))}
                       </select>
@@ -376,17 +388,9 @@ export function InvoiceForm({ invoiceId }: InvoiceFormProps) {
             {/* Totals */}
             <div className="flex justify-end">
               <div className="w-full md:w-64 space-y-3">
-                <div className="flex justify-between py-2 border-t border-border">
-                  <span>Subtotal:</span>
-                  <span className="font-medium">${Number(invoice.subtotal).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between py-2 border-t border-border">
-                  <span>Tax (10%):</span>
-                  <span className="font-medium">${Number(invoice.tax).toFixed(2)}</span>
-                </div>
                 <div className="flex justify-between py-3 border-t-2 border-border font-bold text-lg">
                   <span>Total:</span>
-                  <span>${Number(invoice.total).toFixed(2)}</span>
+                  <span>₹{Number(invoice.total).toFixed(2)}</span>
                 </div>
               </div>
             </div>

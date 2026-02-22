@@ -119,7 +119,7 @@ export default function InvoicesPage() {
                   <td className="px-4 py-3 text-sm">{new Date(invoice.issue_date).toLocaleDateString()}</td>
                   <td className="px-4 py-3 text-sm">{new Date(invoice.due_date).toLocaleDateString()}</td>
                   <td className="px-4 py-3 text-right font-medium">
-                    ${Number(invoice.total).toFixed(2)}
+                    ₹{Number(invoice.total).toFixed(2)}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadgeColor(invoice.status)}`}>

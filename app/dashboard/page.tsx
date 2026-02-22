@@ -25,7 +25,7 @@ export default function DashboardPage() {
     customers: 0,
     products: 0,
     companies: 0,
-    totalRevenue: '$0.00',
+    totalRevenue: '₹0.00',
   })
   const [loading, setLoading] = useState(true)
 
@@ -49,7 +49,7 @@ export default function DashboardPage() {
         customers: customers.count || 0,
         products: products.count || 0,
         companies: companies.count || 0,
-        totalRevenue: '$0.00',
+        totalRevenue: '₹0.00',
       })
     } catch (error) {
       console.error('Error fetching stats:', error)

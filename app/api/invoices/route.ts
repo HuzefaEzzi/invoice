@@ -27,11 +27,11 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { company_id, customer_id, invoice_number, issue_date, due_date, status, items, tax_rate, notes } = body
+    const { company_id, customer_id, invoice_number, issue_date, due_date, status, items, notes } = body
 
     const subtotal = items.reduce((sum: number, item: any) => sum + (item.quantity * Number(item.unit_price)), 0)
-    const tax = subtotal * ((tax_rate ?? 10) / 100)
-    const total = subtotal + tax
+    const tax = 0
+    const total = subtotal
 
     const adminSupabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -45,13 +45,24 @@ export async function POST(request: Request) {
     )
     await ensureUser(adminSupabase, user)
 
+    let finalInvoiceNumber = invoice_number
+    if (!finalInvoiceNumber || String(finalInvoiceNumber).trim() === '') {
+      const { data: existing } = await adminSupabase
+        .from('invoices')
+        .select('invoice_number')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+      const numericNumbers = (existing || []).map((inv) => parseInt(inv.invoice_number, 10)).filter((n) => !Number.isNaN(n))
+      finalInvoiceNumber = numericNumbers.length > 0 ? String(Math.max(...numericNumbers) + 1) : '1'
+    }
+
     const { data, error } = await adminSupabase
       .from('invoices')
       .insert({
         user_id: user.id,
         company_id,
         customer_id,
-        invoice_number,
+        invoice_number: finalInvoiceNumber,
         issue_date,
         due_date,
         status,

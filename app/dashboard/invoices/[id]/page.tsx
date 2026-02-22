@@ -166,9 +166,9 @@ export default function ViewInvoicePage({ params: paramsPromise }: ViewInvoicePa
                   <tr key={item.id} className="border-b border-border hover:bg-muted/50">
                     <td className="py-3">{item.description}</td>
                     <td className="text-center py-3">{item.quantity}</td>
-                    <td className="text-right py-3">${Number(item.unit_price).toFixed(2)}</td>
+                    <td className="text-right py-3">₹{Number(item.unit_price).toFixed(2)}</td>
                     <td className="text-right py-3 font-medium">
-                      ${Number(item.amount).toFixed(2)}
+                      ₹{Number(item.amount).toFixed(2)}
                     </td>
                   </tr>
                 ))}
@@ -189,17 +189,9 @@ export default function ViewInvoicePage({ params: paramsPromise }: ViewInvoicePa
               )}
             </div>
             <div className="space-y-3">
-              <div className="flex justify-between">
-                <span>Subtotal:</span>
-                <span className="font-medium">${Number(invoice.subtotal).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Tax:</span>
-                <span className="font-medium">${Number(invoice.tax).toFixed(2)}</span>
-              </div>
               <div className="flex justify-between pt-3 border-t border-border font-bold text-lg">
                 <span>Total:</span>
-                <span>${Number(invoice.total).toFixed(2)}</span>
+                <span>₹{Number(invoice.total).toFixed(2)}</span>
               </div>
             </div>
           </div>
